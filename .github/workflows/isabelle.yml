@@ -1,48 +1,56 @@
 name: Check Isabelle Theories
 
 on:
-  push:
-    branches: [ "main", "master" ]
-  pull_request:
-    branches: [ "main", "master" ]
+push:
+branches: ["main", "master"]
+pull_request:
+branches: ["main", "master"]
+workflow_dispatch:
 
-# Grants full permissions to the workflow execution environment
 permissions:
-  contents: write
-  actions: write
-  checks: write
-  deployments: write
-  issues: write
-  packages: write
-  pull-requests: write
-  repository-projects: write
-  security-events: write
-  statuses: write
+contents: read
 
 jobs:
-  check-theories:
-    runs-on: ubuntu-latest
+check-theories:
+runs-on: ubuntu-latest
 
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+steps:
+  - name: Check out repository
+    uses: actions/checkout@v4
 
-      - name: Download and extract AFP
-        run: |
-          wget -q https://www.isa-afp.org/release/afp-current.tar.gz
-          tar -xzf afp-current.tar.gz
+  - name: Download and extract AFP
+    run: |
+      wget -q https://www.isa-afp.org/release/afp-current.tar.gz
+      tar -xzf afp-current.tar.gz
 
-      - name: Generate Isabelle ROOT configuration
-        run: |
-          echo "session MySession = HOL +" > ROOT
-          echo "  theories" >> ROOT
-          for f in *.thy; do
-            if [ -f "$f" ]; then
-              theory_name="${f%.thy}"
-              echo "    $theory_name" >> ROOT
-            fi
-          done
+  - name: Check theory files exist
+    run: |
+      echo "Repository files:"
+      find . -maxdepth 2 -name '*.thy' -print
+      if ! find . -maxdepth 1 -name '*.thy' -print -quit | grep -q .; then
+        echo "::error::No Isabelle .thy files found in the repository root."
+        exit 1
+      fi
 
-      - name: Build and verify Isabelle session
-        run: |
-          docker run --rm -v $(pwd):/home/isabelle/workspace -w /home/isabelle/workspace makarius/isabelle:Isabelle2025-2 build -d afp-current/thys -d . -b MySession
+  - name: Generate Isabelle ROOT configuration
+    run: |
+      {
+        echo "session MySession = HOL +"
+        echo "  theories"
+        for f in *.thy; do
+          if [ -f "$f" ]; then
+            echo "    ${f%.thy}"
+          fi
+        done
+      } > ROOT
+
+  - name: Build Isabelle session
+    run: |
+      docker run --rm \
+        -v "${{ github.workspace }}:/home/isabelle/workspace" \
+        -w /home/isabelle \
+        makarius/isabelle:Isabelle2025-2 \
+        build \
+          -d /home/isabelle/workspace/afp-current/thys \
+          -d /home/isabelle/workspace \
+          -b MySession
