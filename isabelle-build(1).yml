@@ -1,0 +1,70 @@
+name: Isabelle build
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'Isabelle/bin/isabelle/**'
+      - '.github/workflows/isabelle-build.yml'
+  pull_request:
+    paths:
+      - 'Isabelle/bin/isabelle/**'
+      - '.github/workflows/isabelle-build.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install system tools
+        run: sudo apt-get update && sudo apt-get install -y curl tar gzip
+
+      - name: Download Isabelle2025-2
+        run: |
+          curl -fL --retry 3 --retry-delay 2 \
+            https://isabelle.in.tum.de/dist/Isabelle2025-2_linux.tar.gz \
+            -o "$RUNNER_TEMP/Isabelle.tar.gz"
+          tar -xzf "$RUNNER_TEMP/Isabelle.tar.gz" -C "$RUNNER_TEMP"
+          echo "ISABELLE_HOME=$RUNNER_TEMP/Isabelle2025-2" >> "$GITHUB_ENV"
+          echo "$RUNNER_TEMP/Isabelle2025-2/bin" >> "$GITHUB_PATH"
+
+      - name: Download Archive of Formal Proofs
+        run: |
+          curl -fL --retry 3 --retry-delay 2 \
+            https://www.isa-afp.org/release/afp-current.tar.gz \
+            -o "$RUNNER_TEMP/afp.tar.gz"
+          mkdir -p "$RUNNER_TEMP/afp"
+          tar -xzf "$RUNNER_TEMP/afp.tar.gz" -C "$RUNNER_TEMP/afp"
+          AFP_THYS="$(find "$RUNNER_TEMP/afp" -type d -name thys -print -quit)"
+          if [ -z "$AFP_THYS" ]; then
+            echo 'Could not find the AFP thys directory in the downloaded archive.'
+            find "$RUNNER_TEMP/afp" -maxdepth 3 -type d | head -80
+            exit 1
+          fi
+          echo "AFP_THYS=$AFP_THYS" >> "$GITHUB_ENV"
+          echo "AFP theories directory: $AFP_THYS"
+          "$ISABELLE_HOME/bin/isabelle" components -u "$AFP_THYS"
+
+      - name: Build Argument_Audit session
+        shell: bash
+        run: |
+          set -o pipefail
+          "$ISABELLE_HOME/bin/isabelle" build \
+            -v -j 2 -o threads=2 \
+            -d "$AFP_THYS" \
+            -D "$GITHUB_WORKSPACE/Isabelle/bin/isabelle" \
+            Argument_Audit 2>&1 | tee "$RUNNER_TEMP/isabelle-build.log"
+
+      - name: Upload build log even if build fails
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: isabelle-build-log
+          path: ${{ runner.temp }}/isabelle-build.log
+          if-no-files-found: ignore
