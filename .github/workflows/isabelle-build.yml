@@ -1,28 +1,29 @@
-        name: Build Isabelle session
-        shell: bash
-        run: |
-          set -euo pipefail
+name: Isabelle Build
 
-          docker run --rm \
-            --entrypoint /bin/bash \
-            -v "$GITHUB_WORKSPACE:/workspace" \
-            -w /workspace \
-            makarius/isabelle@sha256:9bd33b183c399327c5d554fc8cde27c29b5d2b20cdc6fe7a604caa3f951018fc \
-            -c "set -euo pipefail
-              AFP_URL=https://isa-afp.org/release/afp-CondNormReasHOL-2026-02-06.tar.gz
-              AFP_SHA256=10c3aa794a3cafcfb08a784e11515933162a490b32fc0cdb0cf88f489accdb38
+on:
+push:
+pull_request:
+workflow_dispatch:
 
-              mkdir -p /tmp/afp
-              curl --fail --silent --show-error --location \"\$AFP_URL\" -o /tmp/afp-entry.tar.gz
-              echo \"\$AFP_SHA256  /tmp/afp-entry.tar.gz\" | sha256sum --check --strict
+jobs:
+build:
+name: Build Isabelle session
+runs-on: ubuntu-latest
+steps:
+- name: Check out repository
+uses: actions/checkout@v4
 
-              tar -xzf /tmp/afp-entry.tar.gz -C /tmp/afp
-              test -f /tmp/afp/CondNormReasHOL/ROOT
-              test -f /workspace/Isabelle/bin/isabelle/ROOT
+```
+  - name: Build session
+    shell: bash
+    run: |
+      set -euo pipefail
 
-              isabelle build \
-                -v \
-                -d /tmp/afp/CondNormReasHOL \
-                -D /workspace/Isabelle/bin/isabelle \
-                Argument_Audit
-            "
+      docker pull makarius/isabelle:latest
+
+      docker run --rm \
+        -v "$GITHUB_WORKSPACE:/workspace" \
+        -w /workspace \
+        makarius/isabelle:latest \
+        bash -lc 'isabelle build -D /workspace/Isabelle/bin/isabelle Argument_Audit'
+```
