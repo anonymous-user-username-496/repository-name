@@ -1,3 +1,5 @@
+
+      ```yaml
       - name: Build Isabelle session
         shell: bash
         run: |
@@ -26,3 +28,4 @@
                 -D /workspace/Isabelle/bin/isabelle \
                 Argument_Audit
             "
+```
