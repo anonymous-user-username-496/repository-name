@@ -1,4 +1,4 @@
-      - name: Build Isabelle session
+        name: Build Isabelle session
         shell: bash
         run: |
           set -euo pipefail
