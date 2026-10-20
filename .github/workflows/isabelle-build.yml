@@ -47,9 +47,9 @@ jobs:
 
               test -f /tmp/afp/CondNormReasHOL/ROOT
 
-              Isabelle/bin/isabelle build \
-                -v \
-                -d /tmp/afp/CondNormReasHOL \
-                -D /workspace \
-                Argument_Audit
-            '
+              isabelle build \
+              -v \
+             -d /tmp/afp/CondNormReasHOL \
+             -D /workspace/Isabelle/bin/isabelle \
+             Argument_Audit
+             ,
