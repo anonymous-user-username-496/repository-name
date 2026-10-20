@@ -1,0 +1,76 @@
+# Uses the standard actions/checkout and actions/cache workflow patterns.
+# The Isabelle-specific commands are custom, not copied from a verified template.
+name: Isabelle proof check
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 55
+    env:
+      ISABELLE_VERSION: '2025-2'
+      AFP_DATE: '2026-02-06'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Restore Isabelle installation and compiled session heaps
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            .isabelle-ci
+            ~/.isabelle/Isabelle2025-2/heaps
+          key: isabelle-${{ runner.os }}-2025-2-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            isabelle-${{ runner.os }}-2025-2-
+
+      - name: Install Isabelle and only CondNormReasHOL
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .isabelle-ci
+          cd .isabelle-ci
+          if [ ! -x "Isabelle${ISABELLE_VERSION}/bin/isabelle" ]; then
+            curl -fL --retry 3 --connect-timeout 30 \
+              "https://isabelle.in.tum.de/website-Isabelle${ISABELLE_VERSION}/dist/Isabelle${ISABELLE_VERSION}_linux.tar.gz" \
+              -o isabelle.tar.gz
+            tar -xzf isabelle.tar.gz
+            rm isabelle.tar.gz
+          fi
+          if [ ! -f CondNormReasHOL/ROOT ]; then
+            curl -fL --retry 3 --connect-timeout 30 \
+              "https://isa-afp.org/release/afp-CondNormReasHOL-${AFP_DATE}.tar.gz" \
+              -o condnorm.tar.gz
+            echo '10c3aa794a3cafcfb08a784e11515933162a490b32fc0cdb0cf88f489accdb38  condnorm.tar.gz' | sha256sum -c -
+            mkdir -p afp-extract
+            tar -xzf condnorm.tar.gz -C afp-extract
+            ROOT_FILE="$(find afp-extract -type f -name ROOT -print -quit)"
+            test -n "$ROOT_FILE"
+            mv "$(dirname "$ROOT_FILE")" CondNormReasHOL
+            rm -rf afp-extract condnorm.tar.gz
+          fi
+
+      - name: Build Argument_Audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          ISABELLE="$GITHUB_WORKSPACE/.isabelle-ci/Isabelle${ISABELLE_VERSION}/bin/isabelle"
+          "$ISABELLE" build -v -j 2 -o threads=2 \
+            -d "$GITHUB_WORKSPACE/.isabelle-ci/CondNormReasHOL" \
+            -d "$GITHUB_WORKSPACE/Isabelle/bin/isabelle" \
+            Argument_Audit
+
+      - name: Save compiled session heaps for subsequent runs
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            .isabelle-ci
+            ~/.isabelle/Isabelle2025-2/heaps
+          key: isabelle-${{ runner.os }}-2025-2-${{ github.run_id }}-${{ github.run_attempt }}
