@@ -1,70 +1,55 @@
-name: Isabelle build
+
+name: Isabelle Build
 
 on:
-  workflow_dispatch:
   push:
-    paths:
-      - 'Isabelle/bin/isabelle/**'
-      - '.github/workflows/isabelle-build.yml'
   pull_request:
-    paths:
-      - 'Isabelle/bin/isabelle/**'
-      - '.github/workflows/isabelle-build.yml'
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
   build:
-    runs-on: ubuntu-latest
-    timeout-minutes: 90
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+
     steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v6
 
-      - name: Install system tools
-        run: sudo apt-get update && sudo apt-get install -y curl tar gzip
-
-      - name: Download Isabelle2025-2
-        run: |
-          curl -fL --retry 3 --retry-delay 2 \
-            https://isabelle.in.tum.de/dist/Isabelle2025-2_linux.tar.gz \
-            -o "$RUNNER_TEMP/Isabelle.tar.gz"
-          tar -xzf "$RUNNER_TEMP/Isabelle.tar.gz" -C "$RUNNER_TEMP"
-          echo "ISABELLE_HOME=$RUNNER_TEMP/Isabelle2025-2" >> "$GITHUB_ENV"
-          echo "$RUNNER_TEMP/Isabelle2025-2/bin" >> "$GITHUB_PATH"
-
-      - name: Download Archive of Formal Proofs
-        run: |
-          curl -fL --retry 3 --retry-delay 2 \
-            https://www.isa-afp.org/release/afp-current.tar.gz \
-            -o "$RUNNER_TEMP/afp.tar.gz"
-          mkdir -p "$RUNNER_TEMP/afp"
-          tar -xzf "$RUNNER_TEMP/afp.tar.gz" -C "$RUNNER_TEMP/afp"
-          AFP_THYS="$(find "$RUNNER_TEMP/afp" -type d -name thys -print -quit)"
-          if [ -z "$AFP_THYS" ]; then
-            echo 'Could not find the AFP thys directory in the downloaded archive.'
-            find "$RUNNER_TEMP/afp" -maxdepth 3 -type d | head -80
-            exit 1
-          fi
-          echo "AFP_THYS=$AFP_THYS" >> "$GITHUB_ENV"
-          echo "AFP theories directory: $AFP_THYS"
-          "$ISABELLE_HOME/bin/isabelle" components -u "$AFP_THYS"
-
-      - name: Build Argument_Audit session
+      - name: Build Isabelle session
         shell: bash
         run: |
-          set -o pipefail
-          "$ISABELLE_HOME/bin/isabelle" build \
-            -v -j 2 -o threads=2 \
-            -d "$AFP_THYS" \
-            -D "$GITHUB_WORKSPACE/Isabelle/bin/isabelle" \
-            Argument_Audit 2>&1 | tee "$RUNNER_TEMP/isabelle-build.log"
+          set -euo pipefail
 
-      - name: Upload build log even if build fails
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: isabelle-build-log
-          path: ${{ runner.temp }}/isabelle-build.log
-          if-no-files-found: ignore
+          docker run --rm \
+            --entrypoint /bin/bash \
+            -v "$GITHUB_WORKSPACE:/workspace" \
+            -w /workspace \
+            makarius/isabelle@sha256:9bd33b183c399327c5d554fc8cde27c29b5d2b20cdc6fe7a604caa3f951018fc \
+            -lc '
+              set -euo pipefail
+
+              AFP_URL="https://isa-afp.org/release/afp-CondNormReasHOL-2026-02-06.tar.gz"
+              AFP_SHA256="10c3aa794a3cafcfb08a784e11515933162a490b32fc0cdb0cf88f489accdb38"
+
+              mkdir -p /tmp/afp
+
+              curl --fail --silent --show-error --location \
+                "$AFP_URL" \
+                --output /tmp/afp-entry.tar.gz
+
+              echo "$AFP_SHA256  /tmp/afp-entry.tar.gz" \
+                | sha256sum --check --strict
+
+              tar -xzf /tmp/afp-entry.tar.gz -C /tmp/afp
+
+              test -f /tmp/afp/CondNormReasHOL/ROOT
+
+              Isabelle/bin/isabelle build \
+                -v \
+                -d /tmp/afp/CondNormReasHOL \
+                -D /workspace \
+                Argument_Audit
+            '
