@@ -1,4 +1,4 @@
-theory Scientific_Method_Audit.thy
+theory Scientific_Method_Audit
 imports "HOL-Probability.Probability_Measure"
 begin
 
