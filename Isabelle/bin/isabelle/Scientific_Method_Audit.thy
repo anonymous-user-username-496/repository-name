@@ -1,5 +1,5 @@
-theory Scientific_Method_Audit
-  imports "HOL-Probability.Probability_Measure"
+theory Scientific_Method_Audit.thy
+imports "HOL-Probability.Probability_Measure"
 begin
 
 context prob_space
