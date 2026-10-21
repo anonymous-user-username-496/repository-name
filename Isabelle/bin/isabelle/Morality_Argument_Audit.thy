@@ -48,8 +48,22 @@ lemma should_to_be_found_iff_investigate:
     should_known_def investigate_purpose_def
   by (cases c) simp_all
 
+
 theorem should_status_exhaustive:
   "\<forall>c. should_known c \<or> should_to_be_found c"
-  by (cases_tac c) (auto simp: should_known_def should_to_be_found_def)
-
+proof
+  fix c
+  show "should_known c \<or> should_to_be_found c"
+  proof (cases c)
+    case Known_Should
+    then show ?thesis
+      unfolding should_known_def
+      by simp
+  next
+    case No_Known_Should
+    then show ?thesis
+      unfolding should_known_def should_to_be_found_def
+      by simp
+  qed
+qed
 end
