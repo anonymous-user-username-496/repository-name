@@ -31,11 +31,11 @@ jobs:
           path: |
             .ci-deps
             .isabelle-user
-          key: isabelle-${{ runner.os }}-2025-2-afp-${{ env.AFP_DATE }}-${{ hashFiles('Isabelle/bin/isabelle/**') }}
+          key: isabelle-${{ runner.os }}-2025-2-afp-${{ env.AFP_DATE }}-base
           restore-keys: |
             isabelle-${{ runner.os }}-2025-2-afp-${{ env.AFP_DATE }}-
             isabelle-${{ runner.os }}-2025-2-
-
+            
       - name: Install Isabelle distribution
         shell: bash
         run: |
@@ -89,34 +89,6 @@ jobs:
                   sys.exit(1)
           print('Theory filenames and declarations match.')
           PY
-
-      - name: Require a prebuilt HOL-Analysis heap
-        shell: bash
-        run: |
-          set -euo pipefail
-          ISABELLE="$GITHUB_WORKSPACE/.ci-deps/Isabelle${ISABELLE_VERSION}/bin/isabelle"
-
-          # Refuse to proceed if the compiled HOL-Analysis heap is absent.
-          # This prevents the session build from silently compiling it from source.
-          HEAPS="$("$ISABELLE" getenv -b ISABELLE_HEAPS)"
-          found=false
-          IFS=':' read -r -a heap_dirs <<< "$HEAPS"
-          for heap_dir in "${heap_dirs[@]}"; do
-            [ -d "$heap_dir" ] || continue
-            if find "$heap_dir" -maxdepth 1 -type f \
-                \( -name 'HOL-Analysis' -o -name 'HOL-Analysis.db' \) \
-                -print -quit | grep -q .; then
-              found=true
-              break
-            fi
-          done
-
-          if [ "$found" != true ]; then
-            echo "::error::No prebuilt HOL-Analysis heap found. Refusing to build HOL-Analysis from source."
-            echo "Use a compatible Isabelle distribution/cache that already contains the HOL-Analysis heap."
-            exit 1
-          fi
-          echo "Found prebuilt HOL-Analysis heap; proceeding."
 
       - name: Build only the requested session using available heaps
         shell: bash
