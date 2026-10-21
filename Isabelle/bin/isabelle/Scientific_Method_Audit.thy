@@ -1,31 +1,27 @@
 theory Scientific_Method_Audit
-imports "HOL-Probability.Probability_Measure"
+  imports "HOL-Probability.Probability_Measure"
 begin
 
 context prob_space
 begin
 
-definition likely :: "'a set ⇒ bool" where
-  "likely A ⟷ 1 / 2 < prob A"
+definition likely :: "'a set \<Rightarrow> bool" where
+  "likely A \<longleftrightarrow> (1 / 2 :: real) < prob A"
 
-text ‹
+text \<open>
   If the event's probability is greater than one half,
   it is likely according to this definition.
-›
+\<close>
 
 lemma probability_implies_likely:
   assumes "1 / 2 < prob A"
   shows "likely A"
-  using assms unfolding likely_def .
-
-text ‹
-  If the probability of the next occurrence is the same
-  as the probability inferred from the past, then a past
-  inference of probability greater than one half implies
-  the next occurrence is likely.
-›
+  using assms
+  unfolding likely_def
+  by simp
 
 lemma repeated_occurrence_inference:
+  fixes A B :: "'a set"
   assumes inferred_probability: "1 / 2 < p"
     and next_probability: "prob B = p"
   shows "likely B"
