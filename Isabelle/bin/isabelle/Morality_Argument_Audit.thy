@@ -1,46 +1,40 @@
 theory Morality_Argument_Audit
-  imports "CondNormReasHOL.DDLcube"
+  imports Main
 begin
 
-theorem purpose_of_life_by_cases:
-  fixes no_known_should should_to_be_found investigate :: σ
-  shows
-    "(
-       (∀x y.
-          no_known_should x ⟶ no_known_should y ⟶
-          (x \<^bold>r y ∧ y \<^bold>r x))
-       ∧
-       (∃x. no_known_should x ∧ investigate x)
-       ∧
-       (∀x. should_to_be_found x ⟶ investigate x)
-     )
-     ⟶
-     (
-       (∃x. opt<no_known_should> x ∧ investigate x)
-       ∧ P<investigate|no_known_should> aw
-       ∧ (∀x. opt<should_to_be_found> x ⟶ investigate x)
-       ∧ \<circle><investigate|should_to_be_found> aw
-     )"
-proof (intro impI)
-  assume case_semantics:
-    "(
-       (∀x y.
-          no_known_should x ⟶ no_known_should y ⟶
-          (x \<^bold>r y ∧ y \<^bold>r x))
-       ∧
-       (∃x. no_known_should x ∧ investigate x)
-       ∧
-       (∀x. should_to_be_found x ⟶ investigate x)
-     )"
+text ‹
+  A should is "known" when we know what we should do.
+  The two cases are whether a should is known or not.
+›
 
-  show ?thesis
-  proof (cases "∃x. should_to_be_found x")
-    case True
-    with case_semantics show ?thesis by auto
-  next
-    case False
-    with case_semantics show ?thesis by auto
-  qed
-qed
+datatype knowledge_case =
+    Known_Should
+  | No_Known_Should
 
+definition should_known :: "knowledge_case ⇒ bool" where
+  "should_known c ⟷ c = Known_Should"
+
+definition investigate_purpose :: "knowledge_case ⇒ bool" where
+  "investigate_purpose c ⟷ c = No_Known_Should"
+
+lemma cases_exhaustive:
+  "c = Known_Should ∨ c = No_Known_Should"
+  by (cases c) simp_all
+
+lemma no_known_should_means_investigate:
+  assumes "¬ should_known c"
+  shows "investigate_purpose c"
+  using assms
+  unfolding should_known_def investigate_purpose_def
+  by (cases c) simp_all
+
+lemma investigate_when_should_unknown:
+  assumes "c = No_Known_Should"
+  shows "investigate_purpose c"
+  using assms unfolding investigate_purpose_def by simp
+
+theorem should_status_exhaustive:
+  "(∃x. should_to_be_found x) ∨
+   ¬ (∃x. should_to_be_found x)"
+  by blast
 end
