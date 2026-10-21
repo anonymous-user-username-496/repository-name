@@ -80,7 +80,7 @@ jobs:
               if not p.exists():
                   print(f'Missing theory file: {p}', file=sys.stderr)
                   sys.exit(1)
-              m = re.search(r'^\\s*theory\\s+(\\S+)', p.read_text(), re.M)
+              m = re.search(r'^\s*theory\s+(\S+)', p.read_text(encoding='utf-8-sig'), re.M)
               if not m:
                   print(f'No theory declaration in {p}', file=sys.stderr)
                   sys.exit(1)
