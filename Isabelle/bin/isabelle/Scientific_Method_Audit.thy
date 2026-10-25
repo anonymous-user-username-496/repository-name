@@ -5,8 +5,8 @@ begin
 definition happened_too_many_times ::
   "nat => nat => bool"
 where
-  "happened_too_many_times occurrences nonoccurrences
-    <-> nonoccurrences < occurrences"
+  "happened_too_many_times occurrences nonoccurrences =
+    (nonoccurrences < occurrences)"
 
 definition posterior_predictive_probability ::
   "nat => nat => real"
@@ -18,10 +18,9 @@ where
 definition likely_next ::
   "nat => nat => bool"
 where
-  "likely_next occurrences nonoccurrences
-    <->
-    1 / 2 <
-      posterior_predictive_probability occurrences nonoccurrences"
+  "likely_next occurrences nonoccurrences =
+    (1 / 2 <
+      posterior_predictive_probability occurrences nonoccurrences)"
 
 theorem scientific_induction:
   assumes repeated:
