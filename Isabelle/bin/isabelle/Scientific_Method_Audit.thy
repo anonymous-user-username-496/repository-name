@@ -37,11 +37,17 @@ proof -
     "0 < real occurrences + real nonoccurrences + 2"
     by linarith
 
-  have denominator_bound:
+    have denominator_bound:
     "real occurrences + real nonoccurrences + 2
       < 2 * (real occurrences + 1)"
-    using frequency
-    by linarith
+  proof -
+    have "real nonoccurrences < real occurrences"
+      using frequency .
+    then have "real nonoccurrences + 2 < real occurrences + 2"
+      by linarith
+    then show ?thesis
+      by linarith
+  qed
 
   have half_denominator_bound:
     "1 / 2 *
