@@ -3,33 +3,34 @@ theory Scientific_Method_Audit
 begin
 
 definition happened_too_many_times ::
-  "nat \<Rightarrow> nat \<Rightarrow> bool"
+  "nat => nat => bool"
 where
   "happened_too_many_times occurrences nonoccurrences
-    \<longleftrightarrow> nonoccurrences < occurrences"
+    <-> nonoccurrences < occurrences"
 
 definition posterior_predictive_probability ::
-  "nat \<Rightarrow> nat \<Rightarrow> real"
+  "nat => nat => real"
 where
   "posterior_predictive_probability occurrences nonoccurrences =
     (real occurrences + 1) /
     (real occurrences + real nonoccurrences + 2)"
 
 definition likely_next ::
-  "nat \<Rightarrow> nat \<Rightarrow> bool"
+  "nat => nat => bool"
 where
   "likely_next occurrences nonoccurrences
-    \<longleftrightarrow>
-      1 / 2 <
-        posterior_predictive_probability occurrences nonoccurrences"
+    <->
+    1 / 2 <
+      posterior_predictive_probability occurrences nonoccurrences"
 
 theorem scientific_induction:
-  assumes "happened_too_many_times occurrences nonoccurrences"
+  assumes repeated:
+    "happened_too_many_times occurrences nonoccurrences"
   shows "likely_next occurrences nonoccurrences"
 proof -
   have frequency:
     "real nonoccurrences < real occurrences"
-    using assms
+    using repeated
     unfolding happened_too_many_times_def
     by simp
 
@@ -37,24 +38,18 @@ proof -
     "0 < real occurrences + real nonoccurrences + 2"
     by linarith
 
-    have denominator_bound:
+  have denominator_bound:
     "real occurrences + real nonoccurrences + 2
       < 2 * (real occurrences + 1)"
-  proof -
-    have "real nonoccurrences < real occurrences"
-      using frequency .
-    then have "real nonoccurrences + 2 < real occurrences + 2"
-      by linarith
-    then show ?thesis
-      by linarith
-  qed
+    using frequency
+    by nlinarith
 
   have half_denominator_bound:
     "1 / 2 *
        (real occurrences + real nonoccurrences + 2)
       < real occurrences + 1"
     using denominator_bound
-    by linarith
+    by nlinarith
 
   have predictive_probability_bound:
     "1 / 2 <
