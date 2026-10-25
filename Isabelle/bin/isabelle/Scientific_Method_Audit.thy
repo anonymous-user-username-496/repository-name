@@ -2,22 +2,6 @@ theory Scientific_Method_Audit
   imports "HOL-Probability.Probability_Measure"
 begin
 
-text \<open>
-  Scientific induction using observed frequencies.
-
-  The observation history is summarized by:
-    occurrences     = number of times the phenomenon occurred
-    nonoccurrences = number of times it did not occur
-
-  The predictive model is Bernoulli sampling with a uniform
-  Beta(1,1) prior. Its posterior predictive probability after
-  observing the history is (occurrences + 1) /
-  (occurrences + nonoccurrences + 2).
-
-  "Happened too many times" is defined from the observations,
-  not from the conclusion that the phenomenon is likely.
-\<close>
-
 definition happened_too_many_times ::
   "nat \<Rightarrow> nat \<Rightarrow> bool"
 where
@@ -51,7 +35,7 @@ proof -
 
   have denominator_positive:
     "0 < real occurrences + real nonoccurrences + 2"
-    by positivity
+    by linarith
 
   have denominator_bound:
     "real occurrences + real nonoccurrences + 2
