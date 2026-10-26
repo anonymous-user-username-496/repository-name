@@ -2,65 +2,118 @@ theory Scientific_Method_Audit
   imports "HOL-Probability.Probability_Measure"
 begin
 
-definition happened_too_many_times ::
-  "nat => nat => bool"
-where
-  "happened_too_many_times occurrences nonoccurrences =
-    (nonoccurrences < occurrences)"
+definition occurrence_count :: "bool list => nat" where
+  "occurrence_count observations =
+    length (filter id observations)"
 
-definition posterior_predictive_probability ::
-  "nat => nat => real"
-where
-  "posterior_predictive_probability occurrences nonoccurrences =
-    (real occurrences + 1) /
-    (real occurrences + real nonoccurrences + 2)"
+definition nonoccurrence_count :: "bool list => nat" where
+  "nonoccurrence_count observations =
+    length (filter Not observations)"
 
-definition likely_next ::
-  "nat => nat => bool"
-where
-  "likely_next occurrences nonoccurrences =
-    (1 / 2 <
-      posterior_predictive_probability occurrences nonoccurrences)"
+definition happened_too_many_times :: "bool list => bool" where
+  "happened_too_many_times observations =
+    (nonoccurrence_count observations <
+     occurrence_count observations)"
 
-theorem scientific_induction:
+definition predicted_probability :: "bool list => real" where
+  "predicted_probability observations =
+    (real (occurrence_count observations) + 1) /
+    (real (occurrence_count observations) +
+     real (nonoccurrence_count observations) + 2)"
+
+definition likely_next :: "bool list => bool" where
+  "likely_next observations =
+    (1 / 2 < predicted_probability observations)"
+
+definition not_likely_next :: "bool list => bool" where
+  "not_likely_next observations =
+    (predicted_probability observations <= 1 / 2)"
+
+lemma probability_has_one_value:
+  fixes p q r :: real
+  assumes "p = q"
+      and "p = r"
+  shows "q = r"
+  using assms by simp
+
+lemma likelihood_cases:
+  "likely_next observations | not_likely_next observations"
+  unfolding likely_next_def not_likely_next_def
+  by auto
+
+lemma likelihood_cases_exclusive:
+  "~ (likely_next observations & not_likely_next observations)"
+  unfolding likely_next_def not_likely_next_def
+  by auto
+
+lemma repeated_occurrences_exclude_not_likely:
   assumes repeated:
-    "happened_too_many_times occurrences nonoccurrences"
-  shows "likely_next occurrences nonoccurrences"
+    "happened_too_many_times observations"
+  shows "~ not_likely_next observations"
 proof -
-  have frequency:
-    "real nonoccurrences < real occurrences"
+  let ?s = "real (occurrence_count observations)"
+  let ?f = "real (nonoccurrence_count observations)"
+  let ?d = "?s + ?f + 2"
+
+  have frequency: "?f < ?s"
     using repeated
     unfolding happened_too_many_times_def
     by simp
 
-  have denominator_positive:
-    "0 < real occurrences + real nonoccurrences + 2"
+  have nonnegative_s: "0 <= ?s"
+    by simp
+
+  have nonnegative_f: "0 <= ?f"
+    by simp
+
+  have positive_denominator: "0 < ?d"
+    using nonnegative_s nonnegative_f
     by linarith
 
-  have denominator_bound:
-    "real occurrences + real nonoccurrences + 2
-      < 2 * (real occurrences + 1)"
+  have arithmetic_bound:
+    "?s + ?f + 2 < 2 * (?s + 1)"
     using frequency
-    by nlinarith
+    by (simp add: algebra_simps)
 
-  have half_denominator_bound:
-    "1 / 2 *
-       (real occurrences + real nonoccurrences + 2)
-      < real occurrences + 1"
-    using denominator_bound
-    by nlinarith
+  have half_bound:
+    "(1 / 2 :: real) * ?d < ?s + 1"
+    using arithmetic_bound
+    by (simp add: field_simps)
 
-  have predictive_probability_bound:
-    "1 / 2 <
-      (real occurrences + 1) /
-      (real occurrences + real nonoccurrences + 2)"
-    using denominator_positive half_denominator_bound
+  have prediction:
+    "(1 / 2 :: real) < (?s + 1) / ?d"
+    using positive_denominator half_bound
     by (simp add: pos_less_divide_eq)
 
   show ?thesis
-    unfolding likely_next_def posterior_predictive_probability_def
-    using predictive_probability_bound
+    unfolding not_likely_next_def
+      predicted_probability_def
+    using prediction
     by simp
+qed
+
+theorem scientific_induction:
+  assumes repeated:
+    "happened_too_many_times observations"
+  shows "likely_next observations"
+proof (cases "likely_next observations")
+  case True
+  then show ?thesis .
+next
+  case False
+
+  have excluded:
+    "~ not_likely_next observations"
+    using repeated
+    by (rule repeated_occurrences_exclude_not_likely)
+
+  have exhaustive:
+    "likely_next observations | not_likely_next observations"
+    by (rule likelihood_cases)
+
+  show ?thesis
+    using False excluded exhaustive
+    by blast
 qed
 
 end
