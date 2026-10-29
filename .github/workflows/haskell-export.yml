@@ -20,19 +20,26 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Clone AFP (Archive of Formal Proofs)
+        run: |
+          # Shallow clone to save bandwidth and prevent timeouts
+          git clone --depth 1 https://github.com/isabelle-prover/mirror-afp-2026.git afp
+
+      - name: Add Isabelle to PATH and Register AFP Component
+        run: |
+          echo "/home/isabelle/Isabelle/bin" >> $GITHUB_PATH
+          # Register the AFP theories folder as a user component
+          /home/isabelle/Isabelle/bin/isabelle components -u "$PWD/afp/thys"
+
       - name: Fix Permissions and Git Safe Directory
         run: |
           git config --global --add safe.directory '*'
           chmod -R 777 .
 
-      - name: Add Isabelle to PATH
-        run: |
-          echo "/home/isabelle/Isabelle/bin" >> $GITHUB_PATH
-
       - name: Export Haskell Files
         run: |
-          # Change './Isabelle' to the exact folder path where your ROOT file is located
-          isabelle export -d ./Isabelle/bin/isabelle -O ./haskell-output -x "**/*.hs" Argument_Audit
+          # Update './Isabelle' to match the exact folder path where your ROOT file lives
+          isabelle export -d ./Isabelle -O ./haskell-output -x "**/*.hs" Argument_Audit
 
       - name: Archive Haskell Artifacts
         uses: actions/upload-artifact@v4
