@@ -31,7 +31,8 @@ jobs:
 
       - name: Export Haskell Files
         run: |
-          isabelle export -d . -O ./haskell-output -x "**/*.hs" Argument_Audit
+          # Change './Isabelle' to the exact folder path where your ROOT file is located
+          isabelle export -d ./Isabelle/bin/isabelle -O ./haskell-output -x "**/*.hs" Argument_Audit
 
       - name: Archive Haskell Artifacts
         uses: actions/upload-artifact@v4
