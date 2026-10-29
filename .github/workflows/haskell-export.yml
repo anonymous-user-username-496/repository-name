@@ -25,9 +25,12 @@ jobs:
           git config --global --add safe.directory '*'
           chmod -R 777 .
 
+      - name: Add Isabelle to PATH
+        run: |
+          echo "/home/isabelle/Isabelle/bin" >> $GITHUB_PATH
+
       - name: Export Haskell Files
         run: |
-          # Replace 'MySession' with your actual session name
           isabelle export -d . -O ./haskell-output -x "**/*.hs" Argument_Audit
 
       - name: Archive Haskell Artifacts
