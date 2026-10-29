@@ -7,7 +7,6 @@ on:
     branches: [ main, master ]
 
 jobs:
-<div>
   export-haskell:
     runs-on: ubuntu-latest
     container:
@@ -22,14 +21,11 @@ jobs:
 
       - name: Export Haskell Files
         run: |
-          # -d . locates your ROOT file session
-          # -O specifies the destination directory for the output
-          # -x filters specifically for the generated Haskell files
-          isabelle export -d . -O ./haskell-output -x "**/*.hs" Argument_Audit
+          isabelle export -d . -O ./haskell-output -x "**/*.hs" MySession
 
       - name: Archive Haskell Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: generated-haskell-code
           path: ./haskell-output/
-</div>
+          
