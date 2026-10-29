@@ -1,35 +1,30 @@
-name: Export Isabelle to Haskell
+name: Build and Export Isabelle
 
 on:
   push:
     branches: [ main, master ]
-  pull_request:
-    branches: [ main, master ]
 
 jobs:
-  export-haskell:
+  export:
     runs-on: ubuntu-latest
-    container:
-      image: makarius/isabelle:Isabelle2026
-      options: --user root
-    steps:
-      - name: Install Git
-        run: |
-          apt-get update && apt-get install -y git
+    # This official container solves "isabelle: not found" instantly 
+    # because Isabelle is built directly into it:
+    container: makarius/isabelle:Isabelle2024 
 
+    steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Fix Git Dubious Ownership
-        run: git config --global --add safe.directory '*'
-
-      - name: Export Haskell Files
+      - name: Build and export only the latest MySession
         run: |
+          # 1. Build only your specific session to ensure it uses the latest code
+          isabelle build -v -e -d . MySession
+
+          # 2. Export only the Haskell files from that latest build
           isabelle export -d . -O ./haskell-output -x "**/*.hs" MySession
 
-      - name: Archive Haskell Artifacts
+      - name: Save generated files as an artifact
         uses: actions/upload-artifact@v4
         with:
-          name: generated-haskell-code
-          path: ./haskell-output/
-          
+          name: haskell-output
+          path: haskell-output/
