@@ -28,7 +28,7 @@ jobs:
       - name: Export Haskell Files
         run: |
           # Replace 'MySession' with your actual session name
-          isabelle export -d . -O ./haskell-output -x "**/*.hs" MySession
+          isabelle export -d . -O ./haskell-output -x "**/*.hs" Argument_Audit
 
       - name: Archive Haskell Artifacts
         uses: actions/upload-artifact@v4
