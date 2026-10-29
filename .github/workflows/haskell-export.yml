@@ -9,25 +9,25 @@ on:
 jobs:
   export-haskell:
     runs-on: ubuntu-latest
+    container:
+      image: makarius/isabelle:Isabelle2026
+      options: --user root
     steps:
+      - name: Install Git
+        run: |
+          apt-get update && apt-get install -y git
+
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Download and Setup Isabelle
+      - name: Fix Permissions and Git Safe Directory
         run: |
-          echo "Downloading Isabelle..."
-          wget -q https://isabelle.in.tum.de/dist/Isabelle2026_linux.tar.gz
-          
-          echo "Extracting Isabelle..."
-          tar -xzf Isabelle2026_linux.tar.gz
-          
-          # Rename folder for easier path management and add to PATH
-          mv Isabelle* isabelle-app
-          echo "$PWD/isabelle-app/bin" >> $GITHUB_PATH
+          git config --global --add safe.directory '*'
+          chmod -R 777 .
 
       - name: Export Haskell Files
         run: |
-          # Replace 'MySession' with your actual session name from your ROOT file
+          # Replace 'MySession' with your actual session name
           isabelle export -d . -O ./haskell-output -x "**/*.hs" MySession
 
       - name: Archive Haskell Artifacts
