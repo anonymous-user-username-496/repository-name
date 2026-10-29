@@ -1,0 +1,35 @@
+name: Export Isabelle to Haskell
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+<div>
+  export-haskell:
+    runs-on: ubuntu-latest
+    container:
+      image: makarius/isabelle:Isabelle2026
+      options: --user root
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Fix Git Dubious Ownership
+        run: git config --global --add safe.directory '*'
+
+      - name: Export Haskell Files
+        run: |
+          # -d . locates your ROOT file session
+          # -O specifies the destination directory for the output
+          # -x filters specifically for the generated Haskell files
+          isabelle export -d . -O ./haskell-output -x "**/*.hs" MySession
+
+      - name: Archive Haskell Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-haskell-code
+          path: ./haskell-output/
+</div>
